@@ -1,0 +1,109 @@
+/* ─── Teardrop / balloon map markers ─────────────────── */
+.poi-marker {
+  background: transparent !important;
+  border: none !important;
+  overflow: visible !important;
+}
+
+.marker-wrap {
+  position: relative;
+  width: 30px;
+  height: 42px;
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.45)) drop-shadow(0 1px 3px rgba(0,0,0,0.3));
+  transition: filter 0.15s ease, transform 0.15s ease;
+  cursor: pointer;
+}
+
+.marker-wrap:hover {
+  filter:
+    drop-shadow(0 6px 16px rgba(0,0,0,0.6))
+    drop-shadow(0 0 10px rgba(255,255,255,0.2));
+  transform: scale(1.18) translateY(-3px);
+}
+
+.marker-teardrop {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* Icon sits in the circular "balloon" part (upper ~60% of the teardrop) */
+.marker-icon-img {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  width: 14px;
+  height: 14px;
+  filter: brightness(0) invert(1);
+  pointer-events: none;
+  z-index: 1;
+  display: block;
+}
+
+/* ─── Cluster icons ──────────────────────────────────── */
+.poi-cluster {
+  background: transparent !important;
+  border: none !important;
+}
+
+.cluster-icon {
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.95);
+  font-family: 'Cinzel', serif;
+  font-weight: 700;
+  position: relative;
+}
+
+/* Outer glow ring */
+.cluster-icon::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  background: inherit;
+  opacity: 0.25;
+  z-index: -1;
+}
+
+/* Inner highlight */
+.cluster-icon::after {
+  content: '';
+  position: absolute;
+  top: 3px; left: 3px; right: 3px;
+  height: 40%;
+  border-radius: 50% 50% 0 0;
+  background: linear-gradient(180deg, rgba(255,255,255,0.28) 0%, transparent 100%);
+  pointer-events: none;
+}
+
+.cluster-icon span {
+  font-size: 11px;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  position: relative;
+  z-index: 1;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+}
+
+.cluster-small  {
+  width: 34px;
+  height: 34px;
+  box-shadow: 0 3px 12px rgba(0,0,0,0.45), 0 0 0 2px rgba(255,255,255,0.35);
+}
+.cluster-medium {
+  width: 42px;
+  height: 42px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5), 0 0 0 2.5px rgba(255,255,255,0.4);
+}
+.cluster-medium span { font-size: 12px; }
+.cluster-large  {
+  width: 52px;
+  height: 52px;
+  box-shadow: 0 5px 20px rgba(0,0,0,0.55), 0 0 0 3px rgba(255,255,255,0.45);
+}
+.cluster-large span { font-size: 13px; }
