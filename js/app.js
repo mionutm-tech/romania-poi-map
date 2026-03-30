@@ -15,48 +15,55 @@
   // Zoom control – bottom right
   L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-  // --- Tile layers ---
-  // Day layer 1 (base): CartoDB Voyager — crisp streets + cities at every zoom level
-  const dayBase = L.tileLayer(
-    'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+  // --- Tile layers: satellite hybrid ---
+  // Layer 1: ESRI World Imagery — photorealistic satellite, always visible
+  const satellite = L.tileLayer(
+    'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
     {
       attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors ' +
-        '&copy; <a href="https://carto.com/attributions">CARTO</a>',
-      subdomains: 'abcd',
+        'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
       maxZoom: 19,
     }
   );
-
-  // Desaturate + darken the base for a dramatic, moody terrain aesthetic
-  dayBase.on('add', () => {
-    const el = dayBase.getContainer();
-    if (el) el.style.filter = 'brightness(0.84) saturate(0.68)';
+  satellite.on('add', () => {
+    const el = satellite.getContainer();
+    if (el) el.style.filter = 'saturate(0.88) brightness(0.88)';
   });
 
-  // Day layer 2 (overlay): ESRI Shaded Relief — greyscale hillshade blended with multiply
-  // Higher opacity + contrast filter = deep mountain shadows, visible relief at all zoom levels
-  const dayRelief = L.tileLayer(
-    'https://server.arcgisonline.com/ArcGIS/rest/services/World_Shaded_Relief/MapServer/tile/{z}/{y}/{x}',
-    {
-      attribution: 'Tiles &copy; Esri',
-      maxNativeZoom: 13,
-      maxZoom: 19,
-      opacity: 0.68,
-    }
+  // Layer 2: ESRI Roads — fades in as you zoom in
+  const roads = L.tileLayer(
+    'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}',
+    { attribution: 'Tiles &copy; Esri', maxZoom: 19, opacity: 0 }
   );
 
-  dayRelief.on('add', () => {
-    const container = dayRelief.getContainer();
-    if (container) {
-      container.style.mixBlendMode = 'multiply';
-      // Boost contrast for deeper valley shadows, slight sepia for earthy warmth
-      container.style.filter = 'contrast(1.4) brightness(0.7) sepia(0.2)';
-    }
-  });
+  // Layer 3: ESRI Labels / Places — fades in as you zoom in
+  const labels = L.tileLayer(
+    'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
+    { attribution: 'Tiles &copy; Esri', maxZoom: 19, opacity: 0 }
+  );
 
-  dayBase.addTo(map);
-  dayRelief.addTo(map);
+  satellite.addTo(map);
+  roads.addTo(map);
+  labels.addTo(map);
+
+  // Tag labels layer for CSS styling (boosted visibility)
+  labels.on('add', () => {
+    const el = labels.getContainer();
+    if (el) el.classList.add('labels-layer');
+  });
+  if (labels.getContainer()) labels.getContainer().classList.add('labels-layer');
+
+  // Smoothly reveal roads + labels as zoom increases
+  // Labels: visible from z7 (initial view), roads fade in z9–z12
+  function updateOverlayOpacity() {
+    const zoom = map.getZoom();
+    const tLabels = Math.max(0, Math.min(1, (zoom - 6) / 2));  // visible from z7, full at z8
+    const tRoads  = Math.max(0, Math.min(1, (zoom - 9) / 3));  // visible from z9, full at z12
+    roads.setOpacity(tRoads * 0.80);
+    labels.setOpacity(tLabels * 0.95);
+  }
+  map.on('zoomend', updateOverlayOpacity);
+  updateOverlayOpacity();
 
   // --- Romania border + night mask ---
   try {
@@ -66,16 +73,38 @@
     if (borderResp.ok) {
       const romaniaGeo = await borderResp.json();
 
-      // Border: glow pass + crisp line
-      L.geoJSON(romaniaGeo, {
-        style: { color: '#FFFFFF', weight: 6, opacity: 0.18, fill: false },
-        interactive: false,
-      }).addTo(map);
-      L.geoJSON(romaniaGeo, {
-        style: { color: '#FF9238', weight: 2, opacity: 0.82, fill: false },
+      // Outer mask: darken everything outside Romania
+      const outerRing = [[-90, -180], [-90, 180], [90, 180], [90, -180], [-90, -180]];
+      const romaniaCoords = romaniaGeo.features[0].geometry.coordinates;
+      // Build inverted polygon (world minus Romania)
+      const invertedCoords = [outerRing];
+      for (const ring of romaniaCoords) {
+        // GeoJSON polygons may be nested arrays (MultiPolygon-like)
+        if (Array.isArray(ring[0][0])) {
+          for (const sub of ring) invertedCoords.push(sub.map(c => [c[1], c[0]]));
+        } else {
+          invertedCoords.push(ring.map(c => [c[1], c[0]]));
+        }
+      }
+      L.polygon(invertedCoords, {
+        color: 'transparent',
+        fillColor: '#0a0a0a',
+        fillOpacity: 0.55,
         interactive: false,
       }).addTo(map);
 
+      // Border: glow pass + crisp line
+      L.geoJSON(romaniaGeo, {
+        style: { color: '#FFFFFF', weight: 7, opacity: 0.25, fill: false },
+        interactive: false,
+      }).addTo(map);
+      L.geoJSON(romaniaGeo, {
+        style: { color: '#FF9238', weight: 2.5, opacity: 0.9, fill: false },
+        interactive: false,
+      }).addTo(map);
+
+      // Store for POI filtering
+      window._romaniaGeo = romaniaGeo;
     }
   } catch (e) {
     console.warn('Could not load Romania border:', e);
@@ -141,6 +170,16 @@
     return true;
   });
 
+  // Filter out POIs outside Romania borders
+  if (window._romaniaGeo) {
+    const before = features.length;
+    features = features.filter((f) => {
+      const [lng, lat] = f.geometry.coordinates;
+      return isPointInRomania(lng, lat, window._romaniaGeo);
+    });
+    console.log(`Filtered POIs: ${before} → ${features.length} (removed ${before - features.length} outside Romania)`);
+  }
+
   statusEl.textContent = `Loaded ${features.length} points of interest`;
   setTimeout(() => statusEl.classList.add('fade-out'), 2000);
   setTimeout(() => statusEl.remove(), 2500);
@@ -148,6 +187,43 @@
   // --- Initialize modules ---
   initFilters(map, features);
   initSearch(map, features);
+
+  // --- Hero image fetch on popup open ---
+  map.on('popupopen', async (e) => {
+    const popup  = e.popup;
+    const props  = popup._source?.feature?.properties;
+    console.log('[hero] popupopen — props:', props?.name, '| wiki:', props?.wikipedia, '| wd:', props?.wikidata);
+    if (!props?.wikipedia && !props?.wikidata) { console.log('[hero] no wiki data, skip'); return; }
+
+    const hero = popup.getElement()?.querySelector('.popup-img-hero');
+    console.log('[hero] hero element:', hero);
+    if (!hero || hero.querySelector('img')) { console.log('[hero] no hero or already has img'); return; }
+
+    console.log('[hero] fetching image for', props.wikipedia, props.wikidata);
+    const imgUrl = await fetchPOIImage(props.wikipedia || '', props.wikidata || '');
+    console.log('[hero] imgUrl:', imgUrl);
+
+    if (!hero.isConnected) { console.log('[hero] popup closed during fetch'); return; }
+
+    if (!imgUrl) { console.log('[hero] no image found, removing hero'); hero.style.display = 'none'; return; }
+
+    const img    = document.createElement('img');
+    img.alt      = '';
+    img.decoding = 'async';
+    img.addEventListener('load', () => {
+      console.log('[hero] image loaded OK');
+      img.classList.add('hero-img-loaded');
+      // No popup.update() — it resets innerHTML (function-based popup content),
+      // destroying the img we just appended. Fixed height CSS means no relayout needed.
+    });
+    img.addEventListener('error', () => {
+      console.log('[hero] image error');
+      // Only update when removing the hero (changes popup height).
+      if (hero.isConnected) hero.style.display = 'none';
+    });
+    hero.appendChild(img);
+    img.src = imgUrl;
+  });
 
   // --- URL hash state ---
   applyHashState(map);
@@ -158,6 +234,49 @@
 
   console.log('Romania POI Map initialized.');
 })();
+
+// --- Hero image fetcher ---
+async function fetchPOIImage(wikipedia, wikidata) {
+  // Try Wikipedia pageimages first (faster, pre-sized thumbnail)
+  if (wikipedia) {
+    const colonIdx = wikipedia.indexOf(':');
+    const lang    = colonIdx > -1 ? wikipedia.slice(0, colonIdx)  : 'en';
+    const article = colonIdx > -1 ? wikipedia.slice(colonIdx + 1) : wikipedia;
+    try {
+      const resp = await fetch(
+        `https://${lang}.wikipedia.org/w/api.php?action=query` +
+        `&titles=${encodeURIComponent(article)}&prop=pageimages` +
+        `&format=json&pithumbsize=600&origin=*`,
+        { signal: AbortSignal.timeout(8000) }
+      );
+      if (resp.ok) {
+        const data = await resp.json();
+        const page = Object.values(data?.query?.pages || {})[0];
+        if (page?.thumbnail?.source) return page.thumbnail.source;
+      }
+    } catch (e) { /* fall through to Wikidata */ }
+  }
+
+  // Fallback: Wikidata P18 image property
+  if (wikidata) {
+    try {
+      const resp = await fetch(
+        `https://www.wikidata.org/w/api.php?action=wbgetentities` +
+        `&ids=${encodeURIComponent(wikidata)}&props=claims&format=json&origin=*`,
+        { signal: AbortSignal.timeout(8000) }
+      );
+      if (resp.ok) {
+        const data     = await resp.json();
+        const filename = data?.entities?.[wikidata]?.claims?.P18?.[0]
+          ?.mainsnak?.datavalue?.value;
+        if (filename)
+          return `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(filename)}?width=600`;
+      }
+    } catch (e) { /* no image available */ }
+  }
+
+  return null;
+}
 
 // --- Hash state management ---
 function applyHashState(map) {
@@ -192,6 +311,31 @@ function applyHashState(map) {
   if (lat && lng && zoom) {
     map.setView([parseFloat(lat), parseFloat(lng)], parseInt(zoom));
   }
+}
+
+// --- Point-in-polygon (ray casting) for Romania border filtering ---
+function isPointInRomania(lng, lat, geoJson) {
+  const geometry = geoJson.features[0].geometry;
+  const coords = geometry.type === 'MultiPolygon'
+    ? geometry.coordinates
+    : [geometry.coordinates];
+
+  for (const polygon of coords) {
+    if (isPointInPolygon(lng, lat, polygon[0])) return true;
+  }
+  return false;
+}
+
+function isPointInPolygon(x, y, ring) {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const xi = ring[i][0], yi = ring[i][1];
+    const xj = ring[j][0], yj = ring[j][1];
+    if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) {
+      inside = !inside;
+    }
+  }
+  return inside;
 }
 
 function updateHash() {

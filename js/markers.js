@@ -76,21 +76,27 @@ function createPopupContent(props, lat, lng) {
     <path d="M8.5 14.5 Q12 17.5 15.5 14.5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/>
   </svg>`;
 
+  const hasImage = props.wikipedia || props.wikidata;
+  const heroHtml = hasImage ? `<div class="popup-img-hero"></div>` : '';
+
   return `
     <div class="poi-popup">
-      <div class="popup-category-pill">${cat.label}</div>
-      <h2 class="popup-name">${nameLine}</h2>
-      ${props.region ? `<div class="popup-region">${props.region}</div>` : ''}
-      <hr class="popup-divider">
-      <div class="popup-nav">
-        <a class="nav-btn nav-gmaps" href="${gmapsUrl}" target="_blank" rel="noopener">
-          ${navArrow} Google Maps
-        </a>
-        <a class="nav-btn nav-waze" href="${wazeUrl}" target="_blank" rel="noopener">
-          ${wazeIcon} Waze
-        </a>
+      ${heroHtml}
+      <div class="popup-body">
+        <div class="popup-category-pill">${cat.label}</div>
+        <h2 class="popup-name">${nameLine}</h2>
+        ${props.region ? `<div class="popup-region">${props.region}</div>` : ''}
+        <hr class="popup-divider">
+        <div class="popup-nav">
+          <a class="nav-btn nav-gmaps" href="${gmapsUrl}" target="_blank" rel="noopener">
+            ${navArrow} Google Maps
+          </a>
+          <a class="nav-btn nav-waze" href="${wazeUrl}" target="_blank" rel="noopener">
+            ${wazeIcon} Waze
+          </a>
+        </div>
+        ${linkParts.length ? `<div class="popup-links">${linkParts.join('')}</div>` : ''}
       </div>
-      ${linkParts.length ? `<div class="popup-links">${linkParts.join('')}</div>` : ''}
     </div>
   `;
 }
@@ -102,8 +108,8 @@ function createClusterIcon(cluster, color) {
   else if (count >= 10) size = 'medium';
 
   return L.divIcon({
-    html: `<div class="cluster-icon cluster-${size}" style="background-color: ${color}"><span>${count}</span></div>`,
+    html: `<div class="cluster-icon cluster-${size}" style="--cc:${color}"><span>${count}</span></div>`,
     className: 'poi-cluster',
-    iconSize: size === 'large' ? [52, 52] : size === 'medium' ? [42, 42] : [34, 34],
+    iconSize: size === 'large' ? [58, 58] : size === 'medium' ? [48, 48] : [38, 38],
   });
 }
