@@ -17,9 +17,8 @@ function initFilters(map, features) {
     // Create cluster group for this category
     const group = L.markerClusterGroup({
       chunkedLoading: true,
-      maxClusterRadius: 160,
-      disableClusteringAtZoom: 15,
-      singleMarkerMode: true,
+      maxClusterRadius: (zoom) => zoom <= 8 ? 160 : 80,
+      disableClusteringAtZoom: 13,
       spiderfyOnMaxZoom: true,
       iconCreateFunction: (cluster) => createClusterIcon(cluster, catDef.color),
     });
