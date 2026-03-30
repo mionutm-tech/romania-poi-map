@@ -93,16 +93,6 @@
         interactive: false,
       }).addTo(map);
 
-      // Border: glow pass + crisp line
-      L.geoJSON(romaniaGeo, {
-        style: { color: '#FFFFFF', weight: 7, opacity: 0.25, fill: false },
-        interactive: false,
-      }).addTo(map);
-      L.geoJSON(romaniaGeo, {
-        style: { color: '#FF9238', weight: 2.5, opacity: 0.9, fill: false },
-        interactive: false,
-      }).addTo(map);
-
       // Store for POI filtering
       window._romaniaGeo = romaniaGeo;
     }
