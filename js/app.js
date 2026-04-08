@@ -27,7 +27,7 @@
   );
   satellite.on('add', () => {
     const el = satellite.getContainer();
-    if (el) el.style.filter = 'saturate(0.88) brightness(0.88)';
+    if (el) el.style.filter = 'saturate(1.05) brightness(1.12) contrast(0.95)';
   });
 
   // Layer 2: ESRI Roads — fades in as you zoom in
@@ -88,8 +88,8 @@
       }
       L.polygon(invertedCoords, {
         color: 'transparent',
-        fillColor: '#0a0a0a',
-        fillOpacity: 0.55,
+        fillColor: '#E8E4DD',
+        fillOpacity: 0.50,
         interactive: false,
       }).addTo(map);
 

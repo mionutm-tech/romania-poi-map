@@ -12,11 +12,11 @@ function createCategoryIcon(category) {
       <!-- Teardrop body -->
       <path d="M15 1.5 C7.268 1.5 1 7.768 1 15.5 C1 26.5 15 40.5 15 40.5 C15 40.5 29 26.5 29 15.5 C29 7.768 22.732 1.5 15 1.5 Z"
             fill="${color}"
-            stroke="rgba(255,255,255,0.42)"
-            stroke-width="1.2"/>
+            stroke="rgba(255,255,255,0.65)"
+            stroke-width="1.4"/>
       <!-- Top shine -->
       <ellipse cx="12" cy="10" rx="6" ry="5"
-               fill="rgba(255,255,255,0.22)"
+               fill="rgba(255,255,255,0.30)"
                transform="rotate(-20, 12, 10)"/>
     </svg>
   `;
